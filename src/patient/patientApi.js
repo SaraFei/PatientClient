@@ -12,9 +12,12 @@ export const getPatientById = (id) => {
 export const deletePatient = (id) => {
     return axsios.delete(`${baseUrl}/${id}`);
 }
-export const upDatePatient = (id,updatedPatient) => {
-    return axsios.put(`${baseUrl}/${id}`,updatedPatient);
+export const upDatePatient = (id, updatedPatient) => {
+    return axsios.put(`${baseUrl}/${id}`, updatedPatient);
 }
 export const addPatient = (patient) => {
     return axsios.post(baseUrl, patient)
+}
+export const getCntUnVaccinFromServer = () => {
+    return axsios.get("http://localhost:8000/api/cnt");
 }

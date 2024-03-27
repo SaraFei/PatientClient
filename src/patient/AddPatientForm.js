@@ -1,34 +1,74 @@
 import { useForm } from 'react-hook-form';
 import { addPatient } from './patientApi';
-import { useDispatch } from 'react-redux';
-import { addPatientToClient } from './patientSlice';
 import { useNavigate } from 'react-router-dom';
+
 const AddPatientForm = () => {
     let navigate = useNavigate();
-    let dispatch = useDispatch();
-    const { register, handleSubmit, formState: { errors } } = useForm();
+
+    const { register, getValues, handleSubmit, formState: { errors }, watch } = useForm();
+    const today = new Date().toISOString().split('T')[0];
+    const dob = watch('dob');
+    const positiveDate = watch('positiveDate');
+    const isDateNotGreaterThanToday = (value) => {
+        if (value > today) {
+            return "תאריך לא יכול להיות גדול מהיום";
+        }
+        return true;
+    };
+    const validateSickDate = (value) => {
+        const dob = watch('dob');
+        if (dob && new Date(value) < new Date(dob)) {
+            return "Sick date cannot be before the birth date";
+        }
+    };
+
+    const checkRecoveryDate = (value) => {
+        const { positiveDate } = getValues();
+        const positiveDateObj = new Date(positiveDate);
+        const recoveryDateObj = new Date(value);
+
+        return recoveryDateObj >= positiveDateObj || 'תאריך החלמה חייב להיות אחרי תאריך החולי';
+    };
 
     const tryAddPatient = async (data) => {
-        let { firstName, lastName, id, telephonNum, phonNum, city, street, houseNum, positiveDate, recoveryDate, date, manufacturer } = data;
+        let { firstName, lastName, id, dob, telephonNum, phonNum, city, street, houseNum, positiveDate, recoveryDate, date, manufacturer } = data;
         let address = { city, street, houseNum };
-        let receivingVaccineDate = [{ date, manufacturer}];
         let patient = {
             firstName,
             lastName,
             id,
+            dob,
             telephonNum,
             phonNum,
             address,
-            receivingVaccineDate,
-            positiveDate,
-            recoveryDate
+        };
+
+        if (date == '' && manufacturer == '') {
+            date = null;
+            manufacturer = null;
+
+        } if (positiveDate == "") {
+            positiveDate = null;
+            recoveryDate = null;
+        }
+        if (recoveryDate == "") {
+            recoveryDate = null;
+        }
+        if (date && manufacturer) {
+            patient.receivingVaccineDate = [{ date, manufacturer }];
+        }
+        if (positiveDate) {
+            patient.positiveDate = positiveDate;
+        }
+        if (recoveryDate) {
+            patient.recoveryDate = recoveryDate;
         }
         try {
-           
+            console.log(patient);
             const response = await addPatient(patient);
             alert("החבר נוסף בהצלחה!");
             console.log("add by success");
-            setTimeout(() => { navigate('/') }, 1000)
+            setTimeout(() => { navigate('/allpatients') }, 1000)
 
         }
         catch (error) {
@@ -51,7 +91,7 @@ const AddPatientForm = () => {
         <>
             הוספת חבר קופ"ח
             <form onSubmit={handleSubmit(tryAddPatient)}>
-                <h2>  <label htmlFor='firstName'>שם פרטי</label>
+                <h2>  <label>שם פרטי</label>
                     <input type='text' id='firstName' {...register('firstName', { required: "first name is required", pattern: { message: "שם מורכב רק מאותיות", value: /^[A-Za-zא-ת\s]+$/ } })} />
                     {errors.firstName && <p>{errors.firstName.message}</p>}</h2>
                 <h2>       <label htmlFor='lastName'>שם משפחה</label>
@@ -65,6 +105,15 @@ const AddPatientForm = () => {
                     }
                 })} />
                     {errors.id && <p>{errors.id.message}</p>}</h2>
+                <h2>  <label > תאריך  לידה </label>
+                    <input
+                        type='date'
+                        {...register('dob', {
+                            required: 'תאריך הוא שדה חובה', validate: isDateNotGreaterThanToday
+                        })}
+                    />
+                    {errors.dob && <p>{errors.dob.message}</p>}</h2>
+
                 <h2>  <label htmlFor='telephonNum'> מס' טלפון</label>
                     <input type='text' id='telephonNum' {...register('telephonNum', { required: "telephonNum name is required", pattern: { message: "מס' הטלפון 9 ספרות ", value: /^[0-9]{9}$/ } })} />
                     {errors.telephonNum && <p>{errors.telephonNum.message}</p>}</h2>
@@ -79,23 +128,31 @@ const AddPatientForm = () => {
                     <input type='text' id='street' {...register('street', { required: "street name is required", pattern: { message: "אותיות בלבד", value: /^[A-Za-zא-ת\s]+$/ } })} />
                     {errors.street && <p>{errors.street.message}</p>} </h2>
                 <h2> <label htmlFor='houseNum'> מס' בית </label>
-                    <input type='text' id='houseNum' {...register('houseNum', { required: "houseNum name is required", pattern: { message: " מספרים בלבד!", value: /^[0-9]{2}$/ } })} />
+                    <input type='text' id='houseNum' {...register('houseNum', { required: "houseNum name is required", pattern: { message: " מספרים בלבד!", value: /^[0-9]{1,3}$/, } })} />
                     {errors.houseNum && <p>{errors.houseNum.message}</p>} </h2>
                 קבלת חיסון:
                 <h2> <label htmlFor='date'> תאריך קבלת חיסון</label>
-                    <input type='text' id='date' {...register('date', { pattern: { message: " פורמט תאריך yyyy/mm/dd" } })} />
+                    <input type='date' id='date' {...register('date', { validate: isDateNotGreaterThanToday })} />
                     {errors.date && <p>{errors.date.message}</p>} </h2>
 
-                <h2> <label htmlFor='manufacturer'> יצרן  החיסון</label>
-                    <input type='text' id='manufacturer' {...register('manufacturer', { pattern: { message: "אותיות בלבד", value: /^[A-Za-zא-ת\s]+$/ } })} />
-                    {errors.manufacturer && <p>{errors.manufacturer.message}</p>} </h2>
+                <h2> <label > יצרן  החיסון</label>
+                    <select {...register('manufacturer')}>
+                        <option value="Moderna" hidden>Moderna</option>
+                        <option value="Pfizer">Pfizer</option>
+                        <option value="AstraZeneca">AstraZeneca (Vaxzevria)</option>
+                        <option value="Johnson & Johnson">Johnson & Johnson (Janssen)</option>
+                        <option value="Sinovac">Sinovac (CoronaVac)</option>
+                        <option value="Sinopharm">Sinopharm (BBIBP-CorV)</option>
+                        <option value="Bharat Biotech">Bharat Biotech (Covaxin)</option>
+                    </select>
+                    <p>{errors.manufacturer?.message}</p> </h2>
 
 
-                <h2>  <label htmlFor='positiveDate'> תאריך בו נמצא חיובי לנגיף </label>
-                    <input type='text' id='positiveDate' {...register('positiveDate', { message: " פורמט תאריך yyyy/mm/dd" })} />
+                <h2>  <label > תאריך בו נמצא חיובי לנגיף </label>
+                    <input type='date'  {...register('positiveDate', { validate: isDateNotGreaterThanToday, validateSickDate })} />
                     {errors.positiveDate && <p>{errors.positiveDate.message}</p>}</h2>
-                <h2>  <label htmlFor='recoveryDate'> תאריך החלמה </label>
-                    <input type='text' id='recoveryDate' {...register('recoveryDate', { message: " פורמט תאריך yyyy/mm/dd" })} />
+                <h2>  <label > תאריך החלמה </label>
+                    <input type='date' {...register('recoveryDate', { validate: isDateNotGreaterThanToday, checkRecoveryDate })} />
                     {errors.recoveryDate && <p>{errors.recoveryDate.message}</p>}</h2>
                 <button type="submit">הוסף חבר</button>
             </form>
