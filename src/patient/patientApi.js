@@ -1,3 +1,6 @@
+//In this compound we have calls to server.
+// This is basically the connection between the client and the server
+
 import axsios from "axios";
 
 let baseUrl = "http://localhost:8000/api/patient";

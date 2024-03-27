@@ -1,8 +1,15 @@
+//In this compound we have the option to edit a health insurance member,
+//using react hook form
+//(Only the editable ones are shown)
+
+
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
-import { yupResolver } from "@hookform/resolvers/yup"
-import { upDatePatient } from "./patientApi";
 import { useState } from "react";
+
+import { upDatePatient } from "./patientApi";
+import "./EditPatient.css"
+
 
 
 const EditPatient = () => {
@@ -12,7 +19,9 @@ const EditPatient = () => {
     let ArrayEdit = patient.receivingVaccineDate;
     let navigate = useNavigate();
 
+
     let [addVaccine, setAddVaccine] = useState(false);
+    let [errorVaccinArr, setErrorVaccinArr] = useState(false);
     const { register, handleSubmit, formState: { errors }, watch } = useForm({
         defaultValues: {
             firstName: patient.firstName,
@@ -28,19 +37,23 @@ const EditPatient = () => {
             recoveryDate: patient.recoveryDate,
         }
     });
-    const today = new Date().toISOString().split('T')[0]; // Get today's date in yyyy-mm-dd format
-    const positiveDate = watch('positiveDate');
+    const today = new Date().getTime();
+
     const isDateNotGreaterThanToday = (value) => {
-        if (value > today) {
+        if (value < Date.now())
             return "תאריך לא יכול להיות גדול מהיום";
-        }
         return true;
-    };
-    const validateRecoveryDate = (value) => {
-        if (positiveDate && new Date(value) < new Date(positiveDate)) {
-            return "תאריך קבלת הנגיף לא יכול להיות לפני תאריך קבלת הנגיף";
-        }
-    };
+    }
+
+    // const validatenewCaccinDate = (value) => {
+
+    // if (patient.receivingVaccineDate.length === 0) {
+    //     let lastVaccin = patient.receivingVaccineDate[patient.receivingVaccineDate.length].date;
+    // }
+    //     if (newCaccinDate && new Date(value) < new Date(newCaccinDate)) {
+    //         return "תאריך קבלת החיסון  לא יכול להיות לפני תאריך קבלת החיסון הקודם";
+    //     }
+    // };
 
     const onSubmit = async (data) => {
         let { firstName, lastName, telephonNum, phonNum, address, positiveDate, recoveryDate,
@@ -77,7 +90,9 @@ const EditPatient = () => {
             //     receivingVaccineDate: ArrayEdit, positiveDate, recoveryDate
             // }
         }
-
+        if (!date && manufacturer || !manufacturer && date) {
+            setErrorVaccinArr(true);
+        }
         const userConfirmation = window.confirm('האם אתה בטוח שברצונך לעדכן את הפרטים?');
         if (userConfirmation) {
             try {
@@ -117,10 +132,10 @@ const EditPatient = () => {
             </h2>
 
             <h2>  <label > מס' טלפון</label>
-                <input type='text' {...register('telephonNum', { required: "telephonNum name is required", pattern: { message: "מס' הטלפון 9 ספרות ", value: /^[0-9]{9}$/ } })} />
+                <input type='text' {...register('telephonNum', { required: "telephonNum name is required", pattern: { message: "telephon number  must begin with the digits 0 and its length must be 9 ", value: /^05\d{8}$/} })} />
                 {errors.telephonNum && <p>{errors.telephonNum.message}</p>}</h2>
             <h2>   <label > מס' נייד</label>
-                <input type='text'   {...register('phonNum', { required: "phonNum name is required", pattern: { message: "מס' נייד 10 ספרות ", value: /^[0-9]{10}$/ } })} />
+                <input type='text'   {...register('phonNum', { required: "phonNum name is required", pattern: { message: "phon number  must begin with the digits 05 and its length must be 10 ", value: /^05\d{8}$/}})} />
                 {errors.phonNum && <p>{errors.phonNum.message}</p>}</h2>
             כתובת:
             <h2> <label> עיר </label>
@@ -136,12 +151,12 @@ const EditPatient = () => {
 
 
             {!patient.positiveDate && <h2><label > תאריך בו נמצא חיובי לנגיף </label>
-                <input type='date' {...register('positiveDate')} />
+                <input type='date' {...register('positiveDate',{ min: { value:watch('dob'), message: " date must be after date of birth " } },  { max: { value: new Date().toISOString().split("T")[0], message: "recovery date must be before today" } })} />
                 {errors.positiveDate && <p>{errors.positiveDate.message}</p>}</h2>}
 
 
             {!patient.recoveryDate && <h2>  <label > תאריך החלמה </label>
-                <input type='date' {...register('recoveryDate', { validate: validateRecoveryDate })} />
+                <input type='date' {...register('recoveryDate', { min: { value: watch('positiveDate')&&watch('dob'), message: " date must be after positive and after dob " } }, { max: { value: new Date().toISOString().split("T")[0], message: "recovery date must be before today" } })} />
 
                 {errors.recoveryDate && <p>{errors.recoveryDate.message}</p>}</h2>
             }
@@ -152,10 +167,11 @@ const EditPatient = () => {
             {addVaccine && <><h2>
 
                 <label>  תאריך קבלת חיסון</label>
-                <input type="date"  {...register('date', { validate: isDateNotGreaterThanToday })} /></h2>
+                <input type="date"  {...register('date',{ min: { value:watch('dob'), message: " date must be after date of birth " } },  { max: { value: new Date().toISOString().split("T")[0], message: "recovery date must be before today" } })} /></h2>
                 <p>{errors.date?.message}</p>
                 <select {...register('manufacturer')}>
-                    <option value="Moderna">Moderna</option>
+                    <option value={null}>{null} </option>
+                    <option value="Moderna" >Moderna</option>
                     <option value="Pfizer">Pfizer</option>
                     <option value="AstraZeneca">AstraZeneca (Vaxzevria)</option>
                     <option value="Johnson & Johnson">Johnson & Johnson (Janssen)</option>
@@ -163,7 +179,7 @@ const EditPatient = () => {
                     <option value="Sinopharm">Sinopharm (BBIBP-CorV)</option>
                     <option value="Bharat Biotech">Bharat Biotech (Covaxin)</option>
                 </select>
-                <p>{errors.manufacturer?.message}</p>
+                {errorVaccinArr && <p>must fill manufacturer and date to vaccin</p>}
             </>}
 
 

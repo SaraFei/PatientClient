@@ -1,7 +1,10 @@
+//This component is responsible for displaying all user information in detail
+
 import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
 
 import "./PatientDetails.css";
-import { useState } from "react";
+
 
 const PatientDetails = () => {
 

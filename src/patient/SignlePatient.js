@@ -1,3 +1,6 @@
+//This component accepts a single patient in the profile and displays his basic details,
+//including the option to delete, edit, and display additional details
+
 import { Link, useNavigate } from "react-router-dom";
 import { deletePatient } from "./patientApi";
 
@@ -10,7 +13,9 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+
 const SignlePatient = ({ signlePatient, setFlag }) => {
+
     let navigate = useNavigate();
 
     return (<>
@@ -44,7 +49,6 @@ const SignlePatient = ({ signlePatient, setFlag }) => {
                     if (userConfirmation) {
                         deletePatient(signlePatient._id).then(
                             alert('נמחק בהצלחה'),
-                            // dispatch(deletPatientFromClient(patient._id)),
                             setFlag(true),
                             console.log("החבר נמחק בהצלחה", signlePatient.id),
 
